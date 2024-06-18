@@ -144,16 +144,6 @@ class B2Backend(AbstractBackend):
             self.upload_connection.disconnect()
             self.upload_connection = None
 
-    def _reset_connections(self):
-        if self.api_connection:
-            self.api_connection.reset()
-
-        if self.download_connection:
-            self.download_connection.reset()
-
-        if self.upload_connection:
-            self.upload_connection.reset()
-
     def _get_download_connection(self):
         if self.download_url is None:
             self._authorize_account()
@@ -336,8 +326,8 @@ class B2Backend(AbstractBackend):
 
     def is_temp_failure(self, exc):
         if is_temp_network_error(exc) or isinstance(exc, ssl.SSLError):
-            # We better reset our connections
-            self._reset_connections()
+            # Connection may refuse trying to reconnect, so close connections to retry
+            self._close_connections()
 
         if is_temp_network_error(exc):
             return True
@@ -638,7 +628,7 @@ class B2Backend(AbstractBackend):
         return file_id, file_name
 
     def close(self):
-        self._reset_connections()
+        self._close_connections()
 
     @retry
     def _get_upload_conn(self):
